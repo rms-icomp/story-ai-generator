@@ -1,0 +1,1 @@
+web: gunicorn storyllm.wsgi --log-file - --timeout 60

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="icon" href="{% static 'icon-trans.jpeg' %}" type="image/x-icon">
+    <title>Story AI Generator: Crafting User Stories with LLMs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Link para o Bootstrap 5 via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://kit.fontawesome.com/32284737e2.js" crossorigin="anonymous"></script>
+    <style>
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .userInfos {
+            margin-top: 10px;
+        }
+
+        #excluirUser,
+        #adicionarUsuario{
+            margin-top: 5px;
+        }
+
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Loading Animation */
+        .export-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .export-loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #7c3aed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7); /* fundo semitransparente */
+            display: none; /* começa escondido */
+            align-items: center;
+            justify-content: center;
+            z-index: 9999; /* garante que fica acima de tudo */
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .btn-copy.copied {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+    </style>
+</head>
+<body class="bg-gradient-to-br from-violet-50 via-indigo-50 to-cyan-50 min-h-screen">
+
+    <!-- Header -->
+    <div class="bg-white/60 backdrop-blur-lg border-b border-white/20 shadow-lg sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl blur-xl opacity-50 animate-pulse-glow"></div>
+                        <div class="relative bg-gradient-to-r from-violet-600 to-indigo-600 p-3 rounded-2xl">
+                            <a href="/" ><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                            </svg></a>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="/" >
+                            <h1 class="text-3xl font-black bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                                Story AI Generator
+                            </h1>
+                            <p class="text-sm text-gray-600 font-medium">
+                                Crafting User Stories with LLMs
+                            </p>
+                        </a>
+                    </div>
+                </div>
+                <!--<button onclick="toggleGuide()" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                    <span id="guideButtonText">Ocultar Guia</span>
+                </button>-->
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Guia Lateral -->
+            <div id="guidePanel" class="lg:col-span-1 space-y-6">
+                <!-- Como Usar -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-white/20">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-xl">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800">How to Use</h2>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 mb-1">🏷️ Product Presentation</h3> 
+                                <p class="text-sm text-gray-600">Briefly describe the system you are developing.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 mb-1">👥 User (Function or Role)</h3>
+                                <p class="text-sm text-gray-600">Specify who will be using your system.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 mb-1">🎯 Additional Information</h3>
+                                <p class="text-sm text-gray-600">Add business rules or system constraints.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm">4</div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800 mb-1">🚀 Generate and Export</h3>
+                                <p class="text-sm text-gray-600">Click on generate and copy the stories.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exemplos -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-6 border border-white/20">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800">Examples</h2>
+                    </div>
+                    
+
+                    <div class="space-y-3">
+                        <button class="w-full text-left p-4 bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 rounded-xl transition-all border border-cyan-200">
+                            <h3 class="font-semibold text-gray-800 text-sm mb-1">Blood Donation System</h3>
+                            <p class="text-xs text-gray-600 justify" >A digital platform (web/mobile) that aims to connect donors to blood centers and hospitals, to facilitate donation scheduling and allow for process tracking.</p>
+                            <p class="text-xs text-gray-600 justify"><b>Donor:</b> Schedule donations, receive campaign alerts, and view donation history.</p>
+                            <p class="text-xs text-gray-600 justify"><b>Administrator:</b> Register/monitor blood stocks and types, validate donations, and issue certificates.</p>
+                            
+                        </button>
+
+                        <button class="w-full text-left p-4 bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 rounded-xl transition-all border border-cyan-200">
+                            <h3 class="font-semibold text-gray-800 text-sm mb-1">Local Delivery Management System</h3>
+                            <p class="text-xs text-gray-600 justify" >A platform that connects small businesses with independent delivery drivers to make fast deliveries in urban areas.</p>
+                            <p class="text-xs text-gray-600 justify"><b>Merchant:</b> Register orders, track deliveries, and rate delivery drivers.</p>
+                            <p class="text-xs text-gray-600 justify"><b>Delivery driver:</b> Accept nearby orders, update delivery status, and manage earnings.</p>
+                            <p class="text-xs text-gray-600 justify"><b>Customer:</b> Place orders, track shipments in real time, and rate the service.</p>
+
+                        </button>
+                        
+                    </div>
+                </div>
+
+                <style>
+                        .justify {
+                            text-align: justify;
+                        }
+                    </style>
+                <!-- Dicas -->
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl shadow-xl p-6 border border-amber-200">
+                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                        </svg>
+                        Pro Tips
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Include all user roles or functions.</span>
+                        </li>
+                        
+                        <li class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Describe the business context.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Área Principal -->
+            <div id="mainArea" class="lg:col-span-2 space-y-6">
+                <!-- Card de Configuração -->
+                <div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-white/20">
+                    <form id="meuFormulario" method="post" >
+                        {% csrf_token %}
+                        <div class="space-y-6">
+                            <!--<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-3">🤖 Provedor de IA</label>
+                                    <select id="apiProvider" class="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-violet-500 focus:outline-none transition shadow-sm">
+                                        <option value="openai">OpenAI (GPT-3.5/4)</option>
+                                        <option value="anthropic">Anthropic (Claude)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-3">🔑 API Key</label>
+                                    <input type="password" id="apiKey" placeholder="sk-..." class="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-violet-500 focus:outline-none transition shadow-sm">
+                                </div>
+                            </div>-->
+
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <label class="text-sm font-bold text-gray-700">📝 Product Presentation</label>
+                                    <button  type="button" class="btn btn-success btn-sm btn-copy" onclick="copiarTodosDados()">
+                                        📋 Copy Data
+                                    </button>
+                                </div>
+                                
+                                <textarea name="apresentacao" rows="8" placeholder="What is the overall purpose of the system you intend to develop, and what problem does it seek to solve? (Product Vision) Ex: A system to facilitate information management within an organization..." class="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-violet-500 focus:outline-none transition resize-none shadow-sm" required></textarea>
+                            </div>
+
+                            <div id="usuarios-container" class="col-md-12">
+                                <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-3">👥 User Information</label>
+                                <div id="usuario-container" class="usuario-container border p-4 rounded">
+                                    <div>
+                                        <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-1" > 👤 User (Function or Role)</label>
+                                        <input type="text" class="form-control" name=user_nome placeholder="Who will be using the system? For example: Employee, Manager..." required>
+                                    </div>
+                                    <div class="userInfos">
+                                        <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-1">User Description                                 </label>
+                                        <input type="text" class="form-control"  name=user_descricao placeholder="Describe who this user is.">
+                                    </div>
+                                    <div class="userInfos">
+                                        <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-1">User Actions</label>
+                                        <textarea name=user_acoes  class="form-control" rows="4" required placeholder="What does this user need to do within the system? (Main expected actions) Ex: Register information, consult records, update data, generate reports..."></textarea>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-success btn-sm" id="adicionarUsuario">➕ Add user</button>
+                            </div>
+
+                            <div>
+                                <label for="requisitos" class="block text-sm font-bold text-gray-700 mb-3">🎯 Additional Information</label>
+                                <textarea name="requisitos" id="requisitos" class="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-violet-500 focus:outline-none transition shadow-sm"  rows="5" placeholder="Add acceptance criteria, business rules, or system constraints..."></textarea>
+                            </div>
+
+                            <div id="errorMessage" class="hidden flex items-start gap-3 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+                                <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p id="errorText" class="text-red-800 text-sm font-medium"></p>
+                            </div>
+
+                            <button type="submit" id="generateBtn" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold py-5 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3 text-lg">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                                </svg>
+                                <span id="btnText">Generate Stories with AI</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Resultados -->
+                <div id="resultsContainer" class="hidden space-y-6">
+                    <div class="flex justify-between items-center bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg">
+                        <div>
+                            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-3">
+                                <div class="p-2 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <span id="storiesCount">0</span> Histórias Geradas
+                            </h2>
+                            <p class="text-sm text-gray-600 ml-14 mt-1">Prontas para usar no seu backlog</p>
+                        </div>
+                        <button onclick="exportStories()" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl transition-all shadow-lg hover:shadow-xl font-semibold">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Exportar Tudo
+                        </button>
+                    </div>
+                    <div id="storiesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading para Export -->
+    <div class="overlay" id="overlay"></div>
+    <div class="export-loading" id="exportLoading">
+        <div class="spinner"></div>
+        <p style="color: #1e293b; font-weight: 600;">Generating Stories with AI...</p>
+    </div>
+
+    <!-- Link para o Bootstrap 5 JS e dependências via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+        // Seletor do botão de adicionar
+        const botaoAdicionar = document.getElementById('adicionarUsuario');
+        const botaoExcluir   = '';
+        const containerUsuarios = document.getElementById('usuario-container');
+        contDivUser = 0;
+
+        // Esconde loading
+        document.getElementById('overlay').classList.remove('active');
+        document.getElementById('exportLoading').classList.remove('active');
+        
+        // Função para adicionar os campos do usuário dinamicamente
+        botaoAdicionar.addEventListener('click', function() {
+          const novoUsuario = document.createElement('div');
+          novoUsuario.classList.add('usuario-container', 'mb-4');
+          contDivUser = contDivUser + 1;
+          novoUsuario.id = "userDiv-"+contDivUser;
+    
+          novoUsuario.innerHTML = `
+            <br><hr><br> 
+            <div>
+                <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-1" >👤 Usuário (Função ou Papel)</label>
+                <input type="text" class="form-control" name=user_nome placeholder="Digite o nome do usuário" required>
+            </div>
+            <div class="userInfos">
+                <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-1">Descrição do Usuário                                  </label>
+                <input type="text" class="form-control"  name=user_descricao placeholder="Digite uma descrição para este usuário">
+            </div>
+            <div class="userInfos">
+                <label for="usuarios" class="block text-sm font-bold text-gray-700 mb-1">Ações do Usuário</label>
+                <textarea name=user_acoes  class="form-control" rows="4" required></textarea>
+            </div>
+            <button id="excluirUser" type="button" class="btn btn-danger btn-sm" onclick="excluirUsuario('`+novoUsuario.id+`')" > Excluir usuário </button>
+        
+          `;
+
+          // Adiciona o novo conjunto de campos no container de usuários
+          containerUsuarios.appendChild(novoUsuario);
+
+        });
+
+        // Função para excluir os campos do usuário dinamicamente
+        function excluirUsuario(divId) {
+            document.getElementById(divId).remove();    
+        }
+
+        function copiarTodosDados() {
+            // Monta o texto completo
+            let apresentacao = document.getElementsByName("apresentacao")[0].value;
+            let textoCompleto = apresentacao + '\n\n';
+            
+            let user = document.getElementsByName("user_nome");
+            let userDesc = document.getElementsByName("user_descricao");
+            let userAcoes = document.getElementsByName("user_acoes");
+            
+            for (let i = 0; i < user.length; i++) {
+                textoCompleto += user[i].value + '\n';
+                textoCompleto += userDesc[i].value + '\n';
+                textoCompleto += userAcoes[i].value + '\n\n';
+            }
+            
+            let adicionais = document.getElementsByName("requisitos")[0].value;
+            textoCompleto += adicionais + '\n';
+
+            const btnCopy = document.querySelector('.btn-copy');
+            const textoOriginal = btnCopy.innerHTML;
+
+            function feedbackBotao() {
+                btnCopy.classList.add('copied');
+                btnCopy.innerHTML = '✅ Copiado!';
+                setTimeout(() => {
+                    btnCopy.classList.remove('copied');
+                    btnCopy.innerHTML = textoOriginal;
+                }, 2000);
+            }
+
+            fallbackCopy(textoCompleto);
+
+            // Fallback para HTTP usando execCommand
+            function fallbackCopy(text) {
+                try {
+                    const textarea = document.createElement("textarea");
+                    textarea.value = text;
+                    textarea.style.position = "fixed";
+                    textarea.style.opacity = 0;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand("copy"); // método legado que funciona em HTTP
+                    document.body.removeChild(textarea);
+                    feedbackBotao();
+                } catch (err) {
+                    console.error('Erro ao copiar com fallback:', err);
+                    alert('❌ Erro ao copiar. Por favor, tente novamente.');
+                }
+            }
+        }
+
+      </script>
+
+    <script>
+        
+        const form = document.getElementById('meuFormulario');
+    
+        form.addEventListener('submit', function() {
+            document.getElementById('overlay').style.display = 'flex';
+
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('exportLoading').classList.add('active');
+        });
+    </script>
+</body>
+    <script>
+        let currentStories = [];
+
+        function toggleGuide() {
+            const guide = document.getElementById('guidePanel');
+            const main = document.getElementById('mainArea');
+            const btnText = document.getElementById('guideButtonText');
+            
+            if (guide.classList.contains('hidden')) {
+                guide.classList.remove('hidden');
+                main.classList.remove('lg:col-span-3');
+                main.classList.add('lg:col-span-2');
+                btnText.textContent = 'Ocultar Guia';
+            } else {
+                guide.classList.add('hidden');
+                main.classList.remove('lg:col-span-2');
+                main.classList.add('lg:col-span-3');
+                btnText.textContent = 'Mostrar Guia';
+            }
+        }
+    </script>
+</html>

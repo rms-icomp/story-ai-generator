@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story IA Generator</title>
+    {% load static %}
+    <link rel="icon" href="{% static 'icon-trans.jpeg' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Link para o Bootstrap 5 via CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .logo-text h1 {
+            color: #7c3aed;
+            font-size: 1.8rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .logo-text p {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .btn-return {
+            background: #7c3aed;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .btn-return:hover {
+            background: #6d28d9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        /* Container Principal */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        /* Card de Estatísticas */
+        .stats-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(124, 58, 237, 0.3);
+        }
+
+        .stat-card.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        /* Seção de Ações */
+        .actions-section {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .actions-title h2 {
+            color: #1e293b;
+            font-size: 1.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .actions-title p {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Card de Histórias */
+        .stories-container {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .story-item {
+            background: #f8fafc;
+            border-left: 4px solid #7c3aed;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .story-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .story-title {
+            color: #1e293b;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .story-number {
+            background: #7c3aed;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .story-content {
+            color: #475569;
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+
+        .story-highlight {
+            color: #7c3aed;
+            font-weight: 600;
+        }
+
+        /* Botão de Voltar ao Formulário */
+        .back-to-form {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .btn-back-form {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 1rem 3rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-back-form:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .logo-section {
+                flex-direction: column;
+            }
+
+            .actions-section {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .btn-copy,
+            .btn-export {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .story-title {
+                font-size: 1.1rem;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .action-buttons-group {
+                flex-direction: column;
+                width: 100%;
+            }
+        }
+
+        /* Loading Animation */
+        .export-loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .export-loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #7c3aed;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7); /* fundo semitransparente */
+            display: none; /* começa escondido */
+            align-items: center;
+            justify-content: center;
+            z-index: 9999; /* garante que fica acima de tudo */
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* Títulos de Seção */
+        .section-title {
+            margin: 2rem 0 1.5rem 0;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            border-radius: 12px;
+            color: white;
+            text-align: center;
+        }
+
+        .section-title.additional {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .section-title h2 {
+            font-size: 1.6rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .section-title p {
+            font-size: 1rem;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        .btn-copy {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-copy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-copy.copied {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .action-buttons-group {
+            display: flex;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+    <!-- Header -->
+    <div class="bg-white/60 backdrop-blur-lg border-b border-white/20 shadow-lg sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-6 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl blur-xl opacity-50 animate-pulse-glow"></div>
+                        <div class="relative bg-gradient-to-r from-violet-600 to-indigo-600 p-3 rounded-2xl">
+                            <a href="/" ><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                            </svg></a>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="/" >
+                            <h1 class="text-3xl font-black bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                            Story AI Generator
+                            </h1>
+                            <p class="text-sm text-gray-600 font-medium">
+                                Crafting User Stories with LLMs
+                            </p>
+                        </a>
+                    </div>
+                </div>
+                <button class="btn-return" onclick="voltarPaginaPrincipal()">
+                    ←  Return to Form
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container Principal -->
+    <div class="container">
+        <!-- Estatísticas -->
+        <!--<div class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ mensagem.resumo.quantidade_total_de_historias }}</div>
+                    <div class="stat-label">Histórias Geradas</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value">{{ mensagem.resumo.quantidade_historias_principais }}</div>
+                    <div class="stat-label">Histórias Principais</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-value">{{ mensagem.resumo.quantidade_historias_adicionais }}</div>
+                    <div class="stat-label">Histórias Adicionais</div>
+                </div>
+            </div>
+        </div>-->
+
+        <!-- Ações -->
+        <div class="actions-section">
+            <div class="actions-title">
+                <h2>Generated User Stories</h2>
+            </div>
+            <div class="action-buttons-group">
+                <button class="btn-copy" onclick="copiarTodasHistorias()">
+                    📋 Copy All
+                </button>
+                <button class="btn-export" onclick="exportarParaExcel()">
+                    📥 Export to Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Histórias -->
+        <div class="stories-container">
+
+            <!-- Título Histórias Principais -->
+            <div class="section-title">
+                <h2>📋 Main Stories</h2>
+                <p>Essential system functionalities</p>
+            </div>
+
+            {% for historia in mensagem.historias %}
+
+            <!-- História 1 -->
+            <div class="story-item">
+                <h3 class="story-title">
+                    <span class="story-number">{{ historia.id }}</span>
+                    {{ historia.titulo }}
+                </h3>
+                <p class="story-content">
+                    Como <span class="story-highlight">{{ historia.como }}</span>,<br>
+                    Eu quero <span class="story-highlight">{{ historia.eu_quero }}</span>,<br>
+                    Para que <span class="story-highlight">{{ historia.para_que }}</span>
+                </p>
+            </div>
+
+            {% endfor %}
+
+            <!-- Título Histórias Adicionais 
+            <div class="section-title additional">
+                <h2>✨ Histórias Adicionais</h2>
+                <p>Funcionalidades complementares e melhorias</p>
+            </div>
+
+            {% for historia in mensagem.historias.adicionais %}
+
+            <div class="story-item">
+                <h3 class="story-title">
+                    <span class="story-number">{{ historia.id }}</span>
+                    {{ historia.titulo }}
+                </h3>
+                <p class="story-content">
+                    Como <span class="story-highlight">{{ historia.como }} </span>,<br>
+                    Eu quero <span class="story-highlight">{{ historia.eu_quero }}</span>,<br>
+                    Para <span class="story-highlight">{{ historia.para_que }}</span>
+                </p>
+            </div>
+
+            {% endfor %}-->
+
+            
+        </div>
+
+        <!-- Botão de Voltar ao Formulário -->
+        <div class="back-to-form">
+            <button class="btn-back-form" onclick="voltarPaginaPrincipal()">
+                ← Return to form
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading para Export -->
+    <div class="overlay" id="overlay"></div>
+    <div class="export-loading" id="exportLoading">
+        <div class="spinner"></div>
+        <p style="color: #1e293b; font-weight: 600;">Exporting to Excel...</p>
+    </div>
+
+    <script>
+        // Dados das histórias para exportação
+        const historiasData = [];
+
+        // Função para exportar para Excel
+        function montarDadosExcel() {
+            historiasData.length = 0;
+
+            // Seleciona todas as histórias na página
+            const stories = document.querySelectorAll(".story-item");
+
+            stories.forEach((story) => {
+                const numero = story.querySelector(".story-number")?.innerText.trim() || "";
+                const titulo = story.querySelector(".story-title")?.childNodes[2]?.textContent.trim() || "";
+                const spans = story.querySelectorAll(".story-content .story-highlight");
+
+                // Garante que há exatamente 3 partes (como / quero / para)
+                const como = spans[0]?.innerText.trim() || "";
+                const quero = spans[1]?.innerText.trim() || "";
+                const para = spans[2]?.innerText.trim() || "";
+
+                historiasData.push({
+                    numero: parseInt(numero),
+                    titulo: titulo,
+                    como: como,
+                    quero: quero,
+                    para: para
+                });
+            });
+
+            console.log("✅ Vetor de histórias gerado:", historiasData);
+
+        }
+        // Função para exportar para Excel
+        function exportarParaExcel() {
+
+            // Mostra loading
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('exportLoading').classList.add('active');
+
+            montarDadosExcel();
+
+            // Simula processamento
+            setTimeout(() => {
+                try {
+                    // Prepara os dados para exportação
+                    const dadosExcel = historiasData.map(historia => ({
+                        'Nº': historia.numero,
+                        'Título': historia.titulo,
+                        'História Completa': `Como um ${historia.como}, Eu quero ${historia.quero}, Para que eu possa ${historia.para}`,
+                        'Como': historia.como,
+                        'Eu quero': historia.quero,
+                        'Para que': historia.para
+                    }));
+
+                    // Cria a planilha
+                    const ws = XLSX.utils.json_to_sheet(dadosExcel);
+                    
+                    // Define larguras das colunas
+                    ws['!cols'] = [
+                        { wch: 5 },   // Nº
+                        { wch: 30 },  // Título
+                        { wch: 80 },  // História Completa
+                        { wch: 15 },  // Como
+                        { wch: 50 },  // Eu quero
+                        { wch: 50 }   // Para que
+                    ];
+
+                    // Cria o workbook
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Histórias de Usuário");
+
+                    // Adiciona metadados
+                    wb.Props = {
+                        Title: "Histórias de Usuário",
+                        Subject: "User Stories",
+                        Author: "Story AI Generator",
+                        CreatedDate: new Date()
+                    };
+
+                    // Gera e baixa o arquivo
+                    const dataAtual = new Date().toISOString().split('T')[0];
+                    XLSX.writeFile(wb, `historias_usuario_${dataAtual}.xlsx`);
+
+                    // Esconde loading
+                    document.getElementById('overlay').classList.remove('active');
+                    document.getElementById('exportLoading').classList.remove('active');
+
+                    // Mostra mensagem de sucesso (opcional)
+                    alert('✅ Arquivo Excel exportado com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao exportar:', error);
+                    document.getElementById('overlay').classList.remove('active');
+                    document.getElementById('exportLoading').classList.remove('active');
+                    alert('❌ Erro ao exportar arquivo. Tente novamente.');
+                }
+            }, 1000);
+        }
+
+        // Função para copiar todas as histórias
+        function copiarTodasHistorias() {
+            montarDadosExcel();
+
+            let textoCompleto = '═══════════════════════════════════════════\n';
+            textoCompleto += '     HISTÓRIAS DE USUÁRIO GERADAS\n';
+            textoCompleto += '═══════════════════════════════════════════\n\n';
+            
+            // Adiciona as histórias (principais)
+            for (let i = 0; i < historiasData.length; i++) {
+                const historia = historiasData[i];
+                textoCompleto += `História ${historia.numero}: ${historia.titulo}\n`;
+                textoCompleto += `Como um ${historia.como}, Eu quero ${historia.quero}, Para que eu possa ${historia.para}\n\n`;
+            }
+            
+            textoCompleto += '═══════════════════════════════════════════\n';
+            textoCompleto += `Total de histórias: ${historiasData.length}\n`;
+            textoCompleto += `Gerado em: ${new Date().toLocaleString('pt-BR')}\n`;
+            textoCompleto += '═══════════════════════════════════════════';
+
+            // ✅ Maneira compatível com HTTP
+            const textarea = document.createElement("textarea");
+            textarea.value = textoCompleto;
+            textarea.style.position = "fixed"; // evita scroll da página
+            textarea.style.opacity = "0"; // invisível
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                document.execCommand("copy");
+
+                const btnCopy = document.querySelector('.btn-copy');
+                const textoOriginal = btnCopy.innerHTML;
+                
+                btnCopy.classList.add('copied');
+                btnCopy.innerHTML = '✅ Copiado!';
+
+                setTimeout(() => {
+                    btnCopy.classList.remove('copied');
+                    btnCopy.innerHTML = textoOriginal;
+                }, 2000);
+            } catch (err) {
+                console.error('Erro ao copiar:', err);
+                alert('❌ Erro ao copiar. Por favor, tente novamente.');
+            }
+
+            document.body.removeChild(textarea);
+        }
+
+
+
+        // Função para voltar à página principal
+        function voltarPaginaPrincipal() {
+            // Aqui você pode definir a URL da página principal
+            // Exemplo: window.location.href = '/';
+            // Por enquanto, vamos apenas mostrar uma mensagem
+            if (confirm('Deseja voltar ao formulário? As histórias atuais permanecerão salvas.')) {
+                window.location.href = '/'; // Ajuste conforme sua URL
+            }
+        }
+
+        // Animação suave ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            const stories = document.querySelectorAll('.story-item');
+            stories.forEach((story, index) => {
+                story.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+
+    <!-- Link para o Bootstrap 5 JS e dependências via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

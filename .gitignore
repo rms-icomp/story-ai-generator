@@ -1,0 +1,6 @@
+.venv
+.vscode
+db.sqlite3
+app/.env
+app/__pycache__
+storyllm/__pycache__
