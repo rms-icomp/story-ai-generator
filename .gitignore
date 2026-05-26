@@ -1,6 +1,6 @@
 .venv
 .vscode
-db.sqlite3
-app/.env
-app/__pycache__
-storyllm/__pycache__
+Story-AI-Generator/db.sqlite3
+Story-AI-Generator/app/.env
+Story-AI-Generator/app/__pycache__
+Story-AI-Generator/storyllm/__pycache__
